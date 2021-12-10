@@ -17,7 +17,7 @@ services:
   networks:
    - test_env
   volumes:
-   - ./initdb:/docker-entrypoint-initdb.d/
+   - ./initdb:/docker-entrypoint-initdb.d
 
  pgadmin:
   container_name: pgadmin
