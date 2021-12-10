@@ -40,6 +40,7 @@ public class CopyingServiceImpl implements CopyingService {
     @Override
     public void cleanTable() {
         copiedRecordRepository.deleteAllInBatch();
+        log.info("Destination table was cleaned");
     }
 
     private void checkList(List<CopiedRecordEntity> entities) {

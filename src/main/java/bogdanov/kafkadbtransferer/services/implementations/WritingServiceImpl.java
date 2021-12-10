@@ -38,6 +38,10 @@ public class WritingServiceImpl implements WritingService {
         int i = 0;
         while (!hasFinished) {
             entities = originalRecordRepository.findAll(PageRequest.of(i++, batchSize));
+            if ((i == 1) && (entities.isEmpty())) {
+                log.warn("Table is empty");
+                break;
+            }
             log.info(messageBuilder.getMessageForList(LOG_HEADER, entities.getContent()));
             entities.forEach(producerService::produce);
             hasFinished = !entities.hasNext();

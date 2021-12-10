@@ -11,19 +11,16 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.internals.Topic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
-@EnableScheduling
-//@Service
+@Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         value = "mode",
@@ -47,9 +44,11 @@ public class LagAnalyzerService {
 
         Map<TopicPartition, Long> groupOffset = new HashMap<>();
         for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : topicPartitionOffsetAndMetadataMap.entrySet()) {
-            TopicPartition key = entry.getKey();
-            OffsetAndMetadata metadata = entry.getValue();
-            groupOffset.putIfAbsent(new TopicPartition(key.topic(), key.partition()), metadata.offset());
+            if (entry.getKey().topic().equalsIgnoreCase(topic)) {
+                TopicPartition key = entry.getKey();
+                OffsetAndMetadata metadata = entry.getValue();
+                groupOffset.putIfAbsent(new TopicPartition(key.topic(), key.partition()), metadata.offset());
+            }
         }
         return groupOffset;
     }
@@ -77,45 +76,30 @@ public class LagAnalyzerService {
         return lags;
     }
 
-    //My
-    private Map<TopicPartition, Long> getCurrentLag() throws ExecutionException, InterruptedException {
-        ListConsumerGroupOffsetsResult info = adminClient.listConsumerGroupOffsets(groupId);
-        Map<TopicPartition, OffsetAndMetadata> topicPartitionOffsetAndMetadataMap =
-                info.partitionsToOffsetAndMetadata().get();
+    public List<Long> analyzeLag() throws ExecutionException, InterruptedException {
 
-        Map<TopicPartition, Long> lags = new HashMap<>();
-        for (TopicPartition t : topicPartitionOffsetAndMetadataMap.keySet()) {
-            lags.putIfAbsent(t, kafkaConsumer.currentLag(t).getAsLong());
-        }
-        return lags;
-    }
-
-    public void analyzeLag(String groupId) throws ExecutionException, InterruptedException {
         Map<TopicPartition, Long> consumerGroupOffsets = getConsumerGroupOffsets(groupId);
         Map<TopicPartition, Long> producerOffsets = getProducerOffsets(consumerGroupOffsets);
         Map<TopicPartition, Long> computedLags = computeLags(consumerGroupOffsets, producerOffsets);
-//        Map<TopicPartition, Long> currentLags = getCurrentLag();
 
-        for (TopicPartition t : computedLags.keySet()) {
-            String topic = t.topic();
-            int partition = t.partition();
-            Long computedLag = computedLags.get(t);
-//            Long currentLag = currentLags.get(t);
+        List<Long> lags = new ArrayList<>(computedLags.size());
 
-            log.warn(
+        for (Map.Entry<TopicPartition, Long> entry : computedLags.entrySet()) {
+            int partition = entry.getKey().partition();
+            Long computedLag = entry.getValue();
+
+            lags.add(computedLag);
+
+            log.info(
                     String.format(
-                            "topic = %s, partition = %s: computed: %s, current: %s",
+                            "topic = %s, partition = %s: computed: %s",
                             topic,
                             partition,
-                            computedLag,
-                            "-"
+                            computedLag
                     ));
         }
-    }
 
-//    @Scheduled(fixedRate = 100L)
-//    public void analyzeLagScheduled() throws ExecutionException, InterruptedException {
-//        analyzeLag(groupId);
-//    }
+        return lags;
+    }
 
 }

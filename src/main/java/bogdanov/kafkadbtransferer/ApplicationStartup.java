@@ -2,15 +2,20 @@ package bogdanov.kafkadbtransferer;
 
 import bogdanov.kafkadbtransferer.services.interfaces.CopyingService;
 import bogdanov.kafkadbtransferer.services.interfaces.WritingService;
+import bogdanov.kafkadbtransferer.services.kafka.implementations.LagAnalyzerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @Component
@@ -19,6 +24,7 @@ public class ApplicationStartup {
 
     private final WritingService writingService;
     private final CopyingService copyingService;
+    private final ApplicationCloser applicationCloser;
 
     @Value("${mode}")
     private String mode;
@@ -28,10 +34,10 @@ public class ApplicationStartup {
 
     @EventListener(ApplicationStartedEvent.class)
     public void onStartUp() {
-        log.warn(String.format("Started task %s",  mode));
+        log.info(String.format("Started task %s",  mode));
         if (Strings.isBlank(mode)) {
             log.error("Please specify --mode parameter with value consume/produce");
-            // exit with error code exit(1)
+            applicationCloser.exit(3);
         }
 
         switch (mode.toLowerCase(Locale.ROOT)) {
@@ -40,10 +46,10 @@ public class ApplicationStartup {
             case CONSUME ->
                 copyingService.cleanTable();
             default -> {
-                // print error  "<mode>" is unknown value. Should be consume or produce
                 log.error(String.format("'%s' is unknown value. Should be consume or produce", mode));
-                // exit (3)
+                applicationCloser.exit(3);
             }
         }
     }
+
 }
