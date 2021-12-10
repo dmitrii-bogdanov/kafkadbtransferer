@@ -12,9 +12,9 @@ The application has "--mode" argument to provide required mode.
 
 # Test environment
 Test environment could be setup by docker-compose.<br>
-It consist of kafka, postgres, pgadmin, amhq.<br>
-AMHQ: http://localhost:8080 UI to browse kafka.<br>
-pgAdmin: http://localhost:8081 UI for postgres<br>
+It consist of kafka, postgres, pgadmin, akhq.<br>
+AKHQ: http://localhost:8080 UI to browse kafka.<br>
+pgAdmin: http://localhost:8081 UI for postgresql<br>
 (need manually to add a server using settings from application.properties)
 
 
