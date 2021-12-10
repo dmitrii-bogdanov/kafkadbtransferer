@@ -1,5 +1,9 @@
 package bogdanov.kafkadbtransferer.database.entities;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,13 +18,14 @@ import java.time.LocalDateTime;
 public abstract class RecordEntity {
 
     @Id
-    @Column(name = "id")
     private long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "timestamp", nullable = false)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @Column(nullable = false)
     private LocalDateTime timestamp;
 
 }

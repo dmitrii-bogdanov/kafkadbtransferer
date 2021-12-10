@@ -1,0 +1,78 @@
+version: '3.5'
+
+networks:
+ test_env:
+  name: test_env
+
+services:
+ postgres:
+  container_name: postgres
+  image: postgres:13.3
+  environment:
+   POSTGRES_DB: "postgres"
+   POSTGRES_USER: "user"
+   POSTGRES_PASSWORD: "password"
+  ports:
+   - "5432:5432"
+  networks:
+   - test_env
+  volumes:
+   - ./initdb:/docker-entrypoint-initdb.d/
+
+ pgadmin:
+  container_name: pgadmin
+  image: dpage/pgadmin4:5.7
+  environment:
+   PGADMIN_DEFAULT_EMAIL: "user@email.com"
+   PGADMIN_DEFAULT_PASSWORD: "password"
+   PGADMIN_CONFIG_SERVER_MODE: "False"
+  networks:
+   - test_env
+  ports:
+   - "8081:80"
+  depends_on:
+   - postgres
+
+ zookeeper:
+  image: confluentinc/cp-zookeeper:5.5.0
+  hostname: zookeeper
+  container_name: zookeeper
+  networks:
+   - test_env
+  ports:
+   - "2181:2181"
+  environment:
+   ZOOKEEPER_CLIENT_PORT: 2181
+
+ kafka:
+  image: confluentinc/cp-kafka:5.5.0
+  hostname: kafka
+  container_name: kafka
+  networks:
+   - test_env
+  ports:
+   - "9092:9092"
+  environment:
+   KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+   KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+   KAFKA_BROKER_ID: 1
+   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  depends_on:
+   - zookeeper
+
+ akhq:
+  image: tchiotludo/akhq
+  container_name: akhq
+  environment:
+   AKHQ_CONFIGURATION: |
+    akhq:
+      connections:
+        docker-kafka-server:
+          properties:
+            bootstrap.servers: "kafka:9092"
+  networks:
+   - test_env
+  ports:
+   - 8080:8080
+  links:
+   - kafka
